@@ -1,0 +1,48 @@
+#!/usr/bin/env bash
+
+DUMP_FILE=mattermost_db.sql_dump
+
+echo "Checking environment variables"
+
+if [ $SCALINGO_POSTGRESQL_URL ]
+then
+  echo 'Environment variable $SCALINGO_POSTGRESQL_URL found'
+else
+  echo 'Environment variable $SCALINGO_POSTGRESQL_URL not found'
+  exit $?
+fi
+
+if [ $MATTERMOST_SCALINGO_POSTGRESQL_URL ]
+then
+  echo 'Environment variable $MATTERMOST_SCALINGO_POSTGRESQL_URL found'
+else
+  echo 'Environment variable $MATTERMOST_SCALINGO_POSTGRESQL_URL not found'
+  exit $?
+fi
+
+dbclient-fetcher postgresql
+if [ $? -ne 0 ]
+then
+  echo 'Failed at installing the DB client with command dbclient-fetcher postgresql'
+  exit $?
+else
+  echo 'Database client installed'
+fi
+
+pg_dump $MATTERMOST_SCALINGO_POSTGRESQL_URL -f $DUMP_FILE -c --no-owner 
+if [ $? -ne 0 ]
+then
+  echo 'Failed at dumping Mattermost data; please check logs'
+  exit $?
+else
+  echo 'Database dumped'
+fi
+
+psql $SCALINGO_POSTGRESQL_URL < $DUMP_FILE
+if [ $? -ne 0 ]
+then
+  echo 'Failed at loading Mattermost data into Metabase DB; please check logs'
+  exit $?
+else
+  echo 'Data load'
+fi
