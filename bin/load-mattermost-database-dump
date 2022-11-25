@@ -29,7 +29,16 @@ else
   echo 'Database client installed'
 fi
 
-pg_dump $MATTERMOST_SCALINGO_POSTGRESQL_URL -f $DUMP_FILE -c --no-owner 
+pg_dump $MATTERMOST_SCALINGO_POSTGRESQL_URL \
+  --clean \
+  --if-exists \
+  --format c \
+  --no-owner \
+  --no-privileges \
+  --no-comments \
+  --exclude-schema 'information_schema' \
+  --exclude-schema '^pg_*' \
+  --file $DUMP_FILE
 if [ $? -ne 0 ]
 then
   echo 'Failed at dumping Mattermost data; please check logs'
@@ -38,7 +47,13 @@ else
   echo 'Database dumped'
 fi
 
-psql $SCALINGO_POSTGRESQL_URL < $DUMP_FILE
+pg_restore -d "$SCALINGO_POSTGRESQL_URL" \
+  --clean \
+  --if-exists \
+  --no-owner \
+  --no-privileges \
+  --no-comments \
+  $DUMP_FILE
 if [ $? -ne 0 ]
 then
   echo 'Failed at loading Mattermost data into Metabase DB; please check logs'
